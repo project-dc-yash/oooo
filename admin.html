@@ -1,0 +1,473 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>ME — Admin • Dataset & Image Upload</title>
+<style>
+  :root{
+    --bg:#071428; --card:#0f1726; --muted:#98a0b3; --accent:#5b69f2; --success:#47d18b; --danger:#ff6b6b;
+    --glass: rgba(255,255,255,0.03); --radius:12px; --mono: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;min-height:100vh;background:linear-gradient(180deg,#041026 0%, #071428 100%);font-family:var(--mono);color:#eaf2ff;padding:28px;}
+  .wrap{max-width:1150px;margin:0 auto;display:grid;grid-template-columns:320px 1fr;gap:22px;align-items:start}
+  .panel{background:linear-gradient(180deg, rgba(255,255,255,0.02), rgba(255,255,255,0.01)); border:1px solid rgba(255,255,255,0.04); padding:16px; border-radius:var(--radius)}
+  header{grid-column:1/-1; display:flex;align-items:center;gap:12px;margin-bottom:8px}
+  .logo{width:52px;height:52px;border-radius:10px;background:linear-gradient(135deg,var(--accent),#3a4fe0);display:flex;align-items:center;justify-content:center;font-weight:700}
+  header h1{margin:0;font-size:18px}
+  header p{margin:0;color:var(--muted);font-size:13px}
+  /* Left sidebar */
+  .sidebar{display:flex;flex-direction:column;gap:12px}
+  .small{font-size:13px;color:var(--muted)}
+  .cred{padding:12px;border-radius:10px;background:rgba(255,255,255,0.02);border:1px dashed rgba(255,255,255,0.03)}
+  .action{display:flex;gap:8px;margin-top:6px}
+  .btn{padding:10px 12px;border-radius:8px;border:none;background:linear-gradient(90deg,var(--accent),#4f5df1);color:white;cursor:pointer;font-weight:600}
+  .btn.ghost{background:transparent;border:1px solid rgba(255,255,255,0.06);color:var(--accent)}
+  /* Right content */
+  .content{display:flex;flex-direction:column;gap:14px}
+  .form-row{display:flex;gap:12px;align-items:center}
+  label{display:block;font-size:13px;margin-bottom:6px}
+  input[type=text], input[type=number], select, textarea{width:100%;padding:10px;border-radius:8px;border:1px solid rgba(255,255,255,0.06);background:transparent;color:inherit}
+  textarea{min-height:86px;resize:vertical}
+  .uploader{padding:12px;border-radius:10px;border:1px dashed rgba(255,255,255,0.04);background:rgba(255,255,255,0.01);display:flex;flex-direction:column;gap:8px}
+  .thumbs{display:flex;gap:10px;flex-wrap:wrap;margin-top:8px}
+  .thumb{width:96px;height:96px;border-radius:8px;overflow:hidden;border:1px solid rgba(255,255,255,0.04);display:flex;align-items:center;justify-content:center;position:relative}
+  .thumb img{width:100%;height:100%;object-fit:cover;display:block}
+  .thumb .rm{position:absolute;top:6px;right:6px;background:rgba(0,0,0,0.6);padding:4px;border-radius:6px;cursor:pointer;font-size:12px}
+  .dataset-table{width:100%;border-collapse:collapse;margin-top:6px}
+  .dataset-table th, .dataset-table td{padding:8px;border-bottom:1px solid rgba(255,255,255,0.03);text-align:left;font-size:13px}
+  .tag{display:inline-block;padding:6px 8px;border-radius:999px;background:rgba(255,255,255,0.03);font-size:12px}
+  .controls{display:flex;gap:8px;align-items:center}
+  .footer-note{color:var(--muted);font-size:13px}
+  /* toast notifications */
+  .toasts{position:fixed;right:22px;bottom:22px;display:flex;flex-direction:column;gap:8px;z-index:9999}
+  .toast{min-width:260px;padding:12px 14px;border-radius:10px;color:white;box-shadow:0 6px 18px rgba(0,0,0,0.45);display:flex;gap:10px;align-items:center}
+  .toast.info{background:rgba(90,110,240,0.95)}
+  .toast.success{background:linear-gradient(90deg,var(--success),#2bbf8e)}
+  .toast.error{background:linear-gradient(90deg,var(--danger),#ff8b6b)}
+  .toast .title{font-weight:700}
+  .toast .msg{font-size:13px;color:rgba(0,0,0,0.8)}
+  @media (max-width:980px){
+    .wrap{grid-template-columns:1fr; padding:18px}
+    header{flex-direction:column;align-items:flex-start}
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="logo">ME</div>
+  <div>
+    <h1>ME — Admin • Dataset Manager</h1>
+    <p class="small">Upload images, add metadata, export dataset, or send to your server (demo).</p>
+  </div>
+</header>
+
+<div class="wrap">
+
+  <!-- LEFT SIDEBAR -->
+  <aside class="panel sidebar">
+    <div>
+      <div class="small">Demo credentials</div>
+      <div class="cred" style="margin-top:8px">
+        <div style="display:flex;justify-content:space-between"><div class="small">Admin</div><strong>admin</strong></div>
+        <div style="display:flex;justify-content:space-between;margin-top:6px"><div class="small">Password</div><strong>Admin@123</strong></div>
+        <div class="small" style="margin-top:8px;color:var(--muted)">Use secure server-side auth in production.</div>
+      </div>
+    </div>
+
+    <div style="margin-top:12px">
+      <div class="small">Actions</div>
+      <div class="action" style="margin-top:8px">
+        <button id="btnExport" class="btn ghost">Export CSV</button>
+        <button id="btnUploadServer" class="btn">Send to Server</button>
+      </div>
+    </div>
+
+    <div style="margin-top:12px">
+      <div class="small">Dataset size</div>
+      <div style="font-weight:700;font-size:18px;margin-top:6px" id="datasetCount">0</div>
+    </div>
+
+    <div style="margin-top:12px" class="footer-note">
+      <div>Notes:</div>
+      <ul style="margin:8px 0 0 18px;color:var(--muted)">
+        <li>Files are stored client-side (demo).</li>
+        <li>Replace `/api/admin/upload` to post to your backend.</li>
+        <li>Large datasets should be uploaded directly to server/cloud storage.</li>
+      </ul>
+    </div>
+
+  </aside>
+
+  <!-- RIGHT CONTENT -->
+  <main class="panel content">
+
+    <!-- Upload form -->
+    <section class="panel">
+      <h3 style="margin:0 0 8px">Add dataset sample(s)</h3>
+      <p class="small" style="margin:0 0 12px">Select images (JPG/PNG). Add text and label for each sample.</p>
+
+      <div style="display:grid;grid-template-columns:1fr 320px;gap:12px">
+        <div>
+          <label>Text / Post</label>
+          <textarea id="metaText" placeholder="Enter social post text or sample notes"></textarea>
+
+          <div style="display:flex;gap:10px;margin-top:8px">
+            <div style="flex:1">
+              <label>Label (class)</label>
+              <select id="metaLabel">
+                <option value="none">none</option>
+                <option value="mild">mild</option>
+                <option value="moderate">moderate</option>
+                <option value="severe">severe</option>
+              </select>
+            </div>
+            <div style="width:120px">
+              <label>Score (0.00 - 1.00)</label>
+              <input type="number" id="metaScore" min="0" max="1" step="0.01" value="0.00">
+            </div>
+          </div>
+
+          <div style="margin-top:10px">
+            <label>Choose image(s)</label>
+            <div class="uploader">
+              <input id="fileInput" type="file" accept="image/*" multiple>
+              <div class="small" style="color:var(--muted)">Tip: select multiple images to create multiple dataset entries sharing the same metadata.</div>
+              <div class="thumbs" id="preview"></div>
+            </div>
+
+            <div style="display:flex;gap:8px;margin-top:12px">
+              <button id="addBtn" class="btn">Add to dataset</button>
+              <button id="clearSelection" class="btn ghost" type="button">Clear selection</button>
+            </div>
+          </div>
+        </div>
+
+        <div>
+          <div class="small">Preview / Help</div>
+          <div style="margin-top:8px;padding:12px;border-radius:8px;background:rgba(255,255,255,0.02)">
+            <div style="font-weight:700">How it works</div>
+            <div class="small" style="margin-top:6px;color:var(--muted)">
+              1. Choose one or more images.<br>
+              2. Add text / label / score.<br>
+              3. Click "Add to dataset" to save client-side. Use Export or Send to server for persistence.<br>
+              Images are converted to Base64 in this demo (may be large). For production upload files to server/cloud and store filenames/URLs in the CSV.
+            </div>
+          </div>
+
+          <div style="margin-top:12px">
+            <div class="small">Quick actions</div>
+            <div class="action" style="margin-top:8px">
+              <button id="fillDemo" class="btn ghost">Fill demo sample</button>
+              <button id="clearDataset" class="btn ghost">Clear dataset</button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Dataset table -->
+    <section class="panel">
+      <div style="display:flex;justify-content:space-between;align-items:center">
+        <h3 style="margin:0">Dataset entries</h3>
+        <div class="small">You can remove rows or export CSV</div>
+      </div>
+
+      <table class="dataset-table" id="datasetTable" style="margin-top:10px">
+        <thead>
+          <tr><th>#</th><th>Preview</th><th>Text</th><th>Label</th><th>Score</th><th>Actions</th></tr>
+        </thead>
+        <tbody></tbody>
+      </table>
+
+    </section>
+
+  </main>
+
+</div>
+
+<!-- Toast container -->
+<div class="toasts" id="toasts"></div>
+
+<script>
+  // Simple admin dataset manager (client-side demo)
+  // Storage key:
+  const STORAGE_KEY = 'me_admin_dataset_v1';
+
+  // DOM
+  const fileInput = document.getElementById('fileInput');
+  const preview = document.getElementById('preview');
+  const addBtn = document.getElementById('addBtn');
+  const clearSelection = document.getElementById('clearSelection');
+  const metaText = document.getElementById('metaText');
+  const metaLabel = document.getElementById('metaLabel');
+  const metaScore = document.getElementById('metaScore');
+  const datasetTableBody = document.querySelector('#datasetTable tbody');
+  const datasetCount = document.getElementById('datasetCount');
+  const toasts = document.getElementById('toasts');
+  const btnExport = document.getElementById('btnExport');
+  const btnUploadServer = document.getElementById('btnUploadServer');
+  const fillDemo = document.getElementById('fillDemo');
+  const clearDataset = document.getElementById('clearDataset');
+
+  // State
+  let selectionFiles = []; // [{file, dataUrl}]
+  let dataset = loadDataset();
+
+  // Initialize UI
+  renderDataset();
+  updateCount();
+
+  // Helpers: toast notifications
+  function toast(message, type='info', title='') {
+    const el = document.createElement('div');
+    el.className = 'toast ' + (type==='error' ? 'error' : type==='success' ? 'success' : 'info');
+    el.innerHTML = `<div style="flex:1">
+      <div class="title">${title || (type==='error' ? 'Error' : type==='success' ? 'Success' : 'Info')}</div>
+      <div class="msg" style="margin-top:6px">${message}</div>
+    </div>
+    <div style="margin-left:8px;cursor:pointer;font-weight:700" aria-hidden>✕</div>`;
+    el.querySelector('div[style*="cursor"]').addEventListener('click', ()=>el.remove());
+    toasts.appendChild(el);
+    setTimeout(()=>{ if (el.parentNode) el.remove(); }, 6000);
+  }
+
+  // File selection handling with preview
+  fileInput.addEventListener('change', async (ev) => {
+    const files = Array.from(ev.target.files || []);
+    selectionFiles = [];
+    preview.innerHTML = '';
+    if (files.length === 0) return;
+    for (const f of files) {
+      if (!f.type.startsWith('image/')) { toast('Only images are allowed', 'error'); continue; }
+      if (f.size > 5 * 1024 * 1024) { // 5MB limit
+        toast(`File ${f.name} is too large (>5MB). Skipping.`, 'error');
+        continue;
+      }
+      try {
+        const dataUrl = await fileToDataURL(f);
+        selectionFiles.push({file: f, dataUrl});
+        const t = thumbElement(dataUrl);
+        preview.appendChild(t);
+      } catch (e) {
+        console.error(e);
+        toast('Failed to read file ' + f.name, 'error');
+      }
+    }
+  });
+
+  // Convert File -> Data URL (base64)
+  function fileToDataURL(file) {
+    return new Promise((res, rej) => {
+      const r = new FileReader();
+      r.onload = () => res(r.result);
+      r.onerror = rej;
+      r.readAsDataURL(file);
+    });
+  }
+
+  function thumbElement(dataUrl) {
+    const el = document.createElement('div');
+    el.className = 'thumb';
+    el.innerHTML = `<img src="${dataUrl}" alt="preview"><div class="rm" title="Remove">✕</div>`;
+    el.querySelector('.rm').addEventListener('click', () => {
+      // remove from selectionFiles
+      selectionFiles = selectionFiles.filter(s => s.dataUrl !== dataUrl);
+      el.remove();
+      fileInput.value = ''; // reset input to allow reselecting same file if needed
+    });
+    return el;
+  }
+
+  clearSelection.addEventListener('click', () => {
+    selectionFiles = [];
+    preview.innerHTML = '';
+    fileInput.value = '';
+  });
+
+  // Add entries to dataset
+  addBtn.addEventListener('click', async () => {
+    if (selectionFiles.length === 0) {
+      toast('No images selected', 'error');
+      return;
+    }
+    const text = metaText.value.trim();
+    const label = metaLabel.value;
+    const score = parseFloat(metaScore.value) || 0.0;
+    // If you want to upload raw files to server instead of embedding base64 in CSV,
+    // replace the dataset entry's image property with the file.name and upload file separately.
+    const timestamp = new Date().toISOString();
+
+    for (const s of selectionFiles) {
+      const entry = {
+        id: 's' + Math.random().toString(36).slice(2,9),
+        text,
+        label,
+        score,
+        imageData: s.dataUrl,   // base64 data URL (may be large) - for demo
+        filename: s.file.name,
+        ts: timestamp
+      };
+      dataset.push(entry);
+    }
+
+    saveDataset();
+    renderDataset();
+    updateCount();
+    toast(`${selectionFiles.length} sample(s) added to dataset`, 'success');
+    // Clear selection after add
+    selectionFiles = [];
+    preview.innerHTML = '';
+    fileInput.value = '';
+    // Optional: clear metadata fields
+    // metaText.value = ''; metaScore.value = '0.00';
+  });
+
+  // Save/load dataset from localStorage (demo)
+  function saveDataset() {
+    try {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(dataset));
+    } catch (e) {
+      toast('Failed to save dataset to localStorage (might be too large).', 'error');
+      console.error(e);
+    }
+  }
+
+  function loadDataset() {
+    try {
+      const raw = localStorage.getItem(STORAGE_KEY);
+      return raw ? JSON.parse(raw) : [];
+    } catch (e) {
+      console.error(e);
+      return [];
+    }
+  }
+
+  function updateCount() {
+    datasetCount.textContent = dataset.length;
+  }
+
+  // Render dataset table
+  function renderDataset() {
+    datasetTableBody.innerHTML = '';
+    dataset.forEach((row, idx) => {
+      const tr = document.createElement('tr');
+      tr.innerHTML = `
+        <td style="width:36px">${idx+1}</td>
+        <td style="width:120px"><div style="width:80px;height:60px;border-radius:6px;overflow:hidden;border:1px solid rgba(255,255,255,0.04)"><img src="${row.imageData}" style="width:100%;height:100%;object-fit:cover"></div></td>
+        <td>${escapeHtml(row.text || '')}</td>
+        <td><span class="tag">${row.label}</span></td>
+        <td>${(Number(row.score)||0).toFixed(2)}</td>
+        <td>
+          <button data-id="${row.id}" class="btn ghost del">Delete</button>
+          <button data-id="${row.id}" class="btn ghost download">Download</button>
+        </td>
+      `;
+      datasetTableBody.appendChild(tr);
+    });
+
+    // Attach event listeners for delete & download
+    document.querySelectorAll('.del').forEach(b => b.addEventListener('click', (e)=>{
+      const id = e.currentTarget.dataset.id;
+      dataset = dataset.filter(r => r.id !== id);
+      saveDataset();
+      renderDataset();
+      updateCount();
+      toast('Entry deleted', 'info');
+    }));
+    document.querySelectorAll('.download').forEach(b => b.addEventListener('click', (e)=>{
+      const id = e.currentTarget.dataset.id;
+      const row = dataset.find(r => r.id === id);
+      if (!row) return toast('Not found', 'error');
+      downloadDataUrlImage(row.imageData, row.filename || (row.id + '.png'));
+    }));
+  }
+
+  function downloadDataUrlImage(dataUrl, filename) {
+    const a = document.createElement('a');
+    a.href = dataUrl;
+    a.download = filename;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+  }
+
+  // Export CSV
+  btnExport.addEventListener('click', () => {
+    if (dataset.length === 0) { toast('Dataset is empty', 'error'); return; }
+    // CSV fields: id, text, label, score, filename, imageData
+    // WARNING: imageData (base64) can make the CSV huge. For production, store file URLs instead.
+    const rows = [['id','text','label','score','filename','imageData','ts']];
+    dataset.forEach(r => {
+      rows.push([r.id, r.text || '', r.label, r.score || 0, r.filename || '', r.imageData || '', r.ts || '']);
+    });
+    const csv = rows.map(r => r.map(cell => `"${String(cell).replace(/"/g,'""')}"`).join(',')).join('\n');
+    const blob = new Blob([csv], {type: 'text/csv;charset=utf-8;'});
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'me_dataset.csv';
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    URL.revokeObjectURL(url);
+    toast('CSV exported', 'success');
+  });
+
+  // Send to server (placeholder)
+  btnUploadServer.addEventListener('click', async () => {
+    if (dataset.length === 0) { toast('Dataset empty', 'error'); return; }
+    // For production: upload files using FormData (multipart) or upload images to cloud (S3/GCS) and send URLs.
+    // This demo will POST JSON to /api/admin/upload (change endpoint on your server).
+    try {
+      toast('Sending dataset to server (demo)...', 'info');
+      const res = await fetch('/api/admin/upload', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({dataset})
+      });
+      if (!res.ok) throw new Error('Server error ' + res.status);
+      const j = await res.json();
+      toast('Server responded: ' + (j.message || 'OK'), 'success');
+    } catch (e) {
+      console.error(e);
+      toast('Failed to send to server. See console.', 'error');
+    }
+  });
+
+  // Utility: escape HTML for safe display in table cells
+  function escapeHtml(s) {
+    return String(s || '').replace(/[&<>"']/g, function(m){ return ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]); });
+  }
+
+  // Fill demo sample
+  fillDemo.addEventListener('click', async () => {
+    metaText.value = 'I feel hopeless and tired all the time.';
+    metaLabel.value = 'severe';
+    metaScore.value = '0.92';
+    // add one demo image from a small SVG
+    const svg = `<svg xmlns='http://www.w3.org/2000/svg' width='400' height='300'><rect width='100%' height='100%' fill='#f0f4ff'/><text x='50%' y='50%' dominant-baseline='middle' text-anchor='middle' fill='#333'>demo image</text></svg>`;
+    const dataUrl = 'data:image/svg+xml;base64,' + btoa(svg);
+    selectionFiles = [{file: {name: 'demo.svg'}, dataUrl}];
+    preview.innerHTML = '';
+    preview.appendChild(thumbElement(dataUrl));
+  });
+
+  // Clear whole dataset (danger)
+  clearDataset.addEventListener('click', () => {
+    if (!confirm('Clear the entire dataset from localStorage? This cannot be undone.')) return;
+    dataset = [];
+    saveDataset();
+    renderDataset();
+    updateCount();
+    toast('Dataset cleared', 'info');
+  });
+
+  // small utility to auto-download image data on dataset delete/download (already included)
+  // End of script
+</script>
+
+</body>
+</html>

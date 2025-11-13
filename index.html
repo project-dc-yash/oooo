@@ -1,0 +1,199 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>ME — Login • Depression Intensity Estimator</title>
+  <style>
+    :root{
+      --bg:#0b1220;
+      --card:#0f1726;
+      --glass:rgba(255,255,255,0.05);
+      --accent:#6c7ef0;
+      --muted:#98a0b3;
+      --radius:14px;
+      --mono:'Segoe UI', Roboto, Arial, sans-serif;
+    }
+    *{box-sizing:border-box}
+    html,body{height:100%}
+    body{
+      margin:0; display:flex; align-items:center; justify-content:center;
+      background:linear-gradient(180deg,#041024 0%, #071428 100%);
+      font-family:var(--mono); color:#eaf2ff; padding:20px;
+    }
+
+    .wrap{width:100%;max-width:960px}
+    header{display:flex;gap:14px;align-items:center;margin-bottom:18px}
+    .logo{width:56px;height:56px;border-radius:12px;background:linear-gradient(135deg,var(--accent),#3a4fe0);display:flex;align-items:center;justify-content:center;font-weight:800}
+    header h1{margin:0;font-size:18px}
+    header p{margin:0;color:var(--muted);font-size:13px}
+
+    .grid{display:grid;grid-template-columns:1fr 420px;gap:20px}
+    .panel{background:linear-gradient(180deg, rgba(255,255,255,0.02), rgba(255,255,255,0.01)); border:1px solid rgba(255,255,255,0.04); padding:20px; border-radius:14px}
+    .small{font-size:13px;color:var(--muted)}
+
+    label{display:block;font-size:13px;margin-bottom:6px}
+    input[type=text], input[type=password]{width:100%;padding:12px;border-radius:10px;border:1px solid rgba(255,255,255,0.06);background:transparent;color:inherit}
+    .controls{display:flex;gap:8px;margin-top:12px}
+
+    .btn{padding:10px 14px;border-radius:10px;border:none;background:linear-gradient(90deg,var(--accent),#5b69f2);color:white;cursor:pointer;font-weight:700}
+    .btn.ghost{background:transparent;border:1px solid rgba(255,255,255,0.06);color:var(--accent)}
+    .show-pass{position:absolute;right:12px;top:12px;font-size:12px;color:var(--muted);cursor:pointer}
+
+    footer{margin-top:12px;color:var(--muted);font-size:13px}
+
+    @media (max-width:900px){ .grid{grid-template-columns:1fr} .logo{width:48px;height:48px} }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <header>
+      <div class="logo">ME</div>
+      <div>
+        <h1>ME — Depression Intensity Estimator</h1>
+        <p class="small">Login to access the demo admin & user pages (client-side demo).</p>
+      </div>
+    </header>
+
+    <div class="grid">
+      <!-- left: info / creds -->
+      <section class="panel">
+        <h2 style="margin:0 0 8px">Demo credentials (visible)</h2>
+        <div class="small" style="margin-bottom:10px">Use these to test flows. <strong>Do not</strong> ship plaintext creds in production.</div>
+
+        <div style="padding:12px;border-radius:10px;background:rgba(255,255,255,0.02);border:1px dashed rgba(255,255,255,0.04);">
+          <div style="display:flex;justify-content:space-between;margin-bottom:8px"><div class="small">Admin</div><strong>admin</strong></div>
+          <div style="display:flex;justify-content:space-between;margin-bottom:8px"><div class="small">Password</div><strong>Admin@123</strong></div>
+          <div style="display:flex;justify-content:space-between;margin-bottom:8px"><div class="small">User</div><strong>user</strong></div>
+          <div style="display:flex;justify-content:space-between;"><div class="small">Password</div><strong>User@123</strong></div>
+        </div>
+
+        <div style="margin-top:12px">
+          <div class="small">Notes</div>
+          <ul style="margin:8px 0 0 18px;color:var(--muted)">
+            <li>Admin logs into <code>admin.html</code>.</li>
+            <li>User logs into <code>home.html</code>.</li>
+            <li>This demo stores a client token <code>me_session</code> in localStorage.</li>
+          </ul>
+        </div>
+      </section>
+
+      <!-- right: login form -->
+      <aside class="panel">
+        <h2 style="margin:0 0 8px">Sign in</h2>
+        <form id="loginForm" onsubmit="return false;">
+          <label for="username">Username</label>
+          <input id="username" type="text" placeholder="admin or user" />
+
+          <label for="password" style="margin-top:12px">Password</label>
+          <div style="position:relative">
+            <input id="password" type="password" placeholder="Enter password" />
+            <span id="toggle" class="show-pass">Show</span>
+          </div>
+
+          <div style="display:flex;align-items:center;gap:10px;margin-top:12px">
+            <label style="display:flex;align-items:center;gap:6px"><input id="remember" type="checkbox"> <span class="small">Remember me</span></label>
+            <div style="margin-left:auto" class="small">Model: <strong style="margin-left:6px">BERT (demo)</strong></div>
+          </div>
+
+          <div class="controls">
+            <button id="signin" class="btn">Sign in</button>
+            <button id="fillDemo" type="button" class="btn ghost">Fill demo creds</button>
+          </div>
+
+          <p id="status" class="small" style="margin-top:12px">Status: idle</p>
+        </form>
+
+        <footer>
+          <p class="small">This is a demo — replace with server-side authentication (OAuth/JWT) before production.</p>
+        </footer>
+      </aside>
+    </div>
+  </div>
+
+  <script>
+    // Demo credentials (client-side)
+    const demo = {
+      admin: 'Admin@123',
+      user: 'User@123'
+    };
+
+    const usernameEl = document.getElementById('username');
+    const passwordEl = document.getElementById('password');
+    const statusEl = document.getElementById('status');
+    const toggle = document.getElementById('toggle');
+    const signin = document.getElementById('signin');
+    const fillDemo = document.getElementById('fillDemo');
+    const rememberEl = document.getElementById('remember');
+
+    // Load remembered username if present
+    try {
+      const remembered = localStorage.getItem('me_remember_username');
+      if (remembered) { usernameEl.value = remembered; rememberEl.checked = true; }
+    } catch (e) { /* ignore */ }
+
+    // Show / hide password
+    toggle.addEventListener('click', () => {
+      if (passwordEl.type === 'password') { passwordEl.type = 'text'; toggle.textContent = 'Hide'; }
+      else { passwordEl.type = 'password'; toggle.textContent = 'Show'; }
+    });
+
+    // Fill demo creds
+    fillDemo.addEventListener('click', () => {
+      usernameEl.value = 'admin';
+      passwordEl.value = 'Admin@123';
+      statusEl.textContent = 'Demo credentials filled';
+      statusEl.style.color = '#bff3c7';
+    });
+
+    // Sign-in logic
+    signin.addEventListener('click', () => {
+      const u = usernameEl.value.trim();
+      const p = passwordEl.value;
+
+      if (!u || !p) {
+        statusEl.textContent = 'Enter username and password';
+        statusEl.style.color = '#ffb3b3';
+        return;
+      }
+
+      statusEl.textContent = 'Checking...';
+      statusEl.style.color = 'var(--muted)';
+
+      // Simulate server latency
+      setTimeout(() => {
+        if (demo[u] && demo[u] === p) {
+          // Remember username if checkbox set
+          try {
+            if (rememberEl.checked) localStorage.setItem('me_remember_username', u);
+            else localStorage.removeItem('me_remember_username');
+          } catch (e) {}
+
+          // Set demo session token (client-side)
+          const session = {
+            user: u,
+            role: u === 'admin' ? 'admin' : 'user',
+            ts: new Date().toISOString()
+          };
+          try { localStorage.setItem('me_session', JSON.stringify(session)); } catch(e){}
+
+          statusEl.textContent = 'Login successful (Demo) — redirecting...';
+          statusEl.style.color = '#bff3c7';
+
+          // Redirect: admin -> admin.html, user -> home.html
+          const dest = (u === 'admin') ? 'admin.html' : 'home.html';
+          setTimeout(() => { location.href = dest; }, 800);
+
+        } else {
+          statusEl.textContent = 'Invalid username or password';
+          statusEl.style.color = '#ffb3b3';
+        }
+      }, 650);
+    });
+
+    // Optional: protect admin/home pages by checking me_session in those pages.
+    // Example on admin.html:
+    // const s = JSON.parse(localStorage.getItem('me_session')||'null'); if (!s || s.role!=='admin') location.href='login.html';
+  </script>
+</body>
+</html>

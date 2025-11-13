@@ -1,0 +1,366 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>SPPU — Depression Intensity Estimator (UI)</title>
+  <meta name="description" content="Front-end demo UI for Depression Intensity Estimation via Social Media" />
+  <style>
+    :root{
+      --bg:#0f1724; --card:#0b1220; --muted:#98a0b3; --accent:#6c7ef0; --accent-2:#7bd389;
+      --glass: rgba(255,255,255,0.04);
+      --radius:14px; --maxw:980px;
+      --mono: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+      --note-success: rgba(42, 199, 132, 0.15);
+      --note-error: rgba(220, 53, 69, 0.12);
+      --note-success-border: rgba(42, 199, 132, 0.35);
+      --note-error-border: rgba(220, 53, 69, 0.35);
+    }
+    *{box-sizing:border-box}
+    html,body{height:100%;}
+    body{
+      margin:0; font-family:var(--mono); background:linear-gradient(180deg,#081024 0%, #071428 60%); color:#e6eef8;
+      -webkit-font-smoothing:antialiased; -moz-osx-font-smoothing:grayscale; padding:40px 18px;
+      display:flex; align-items:center; justify-content:center;
+    }
+    .wrap{width:100%; max-width:var(--maxw);}
+
+    header{display:flex;align-items:center;gap:16px;margin-bottom:18px}
+    .logo{width:56px;height:56px;border-radius:12px;background:linear-gradient(135deg,var(--accent),#3a4fe0);display:flex;align-items:center;justify-content:center;font-weight:700;box-shadow:0 6px 18px rgba(60,80,160,0.18)}
+    .logo span{font-size:20px}
+    header h1{font-size:18px;margin:0}
+    header p{margin:0;color:var(--muted);font-size:13px}
+
+    .grid{display:grid;grid-template-columns:1fr 380px;gap:20px;align-items:start}
+
+    /* main card */
+    .card{background:linear-gradient(180deg, rgba(255,255,255,0.02), rgba(255,255,255,0.01)); border:1px solid rgba(255,255,255,0.04); padding:20px; border-radius:var(--radius); box-shadow:0 10px 30px rgba(2,6,23,0.7)}
+
+    .hero{display:flex;flex-direction:column;gap:12px}
+    .hero h2{margin:0;font-size:20px}
+    .hero p{margin:0;color:var(--muted);font-size:13px}
+
+    form textarea{width:100%;min-height:160px;background:transparent;border:1px solid rgba(255,255,255,0.06);padding:12px;border-radius:10px;color:inherit;resize:vertical}
+    .controls{display:flex;gap:10px;margin-top:10px;align-items:center}
+    .btn{background:linear-gradient(90deg,var(--accent),#5b69f2);border:none;padding:10px 14px;border-radius:10px;color:white;font-weight:600;cursor:pointer}
+    .btn.secondary{background:transparent;border:1px solid rgba(255,255,255,0.06);color:var(--accent);}
+    .small{font-size:13px}
+
+    /* sidebar */
+    .sidebar{position:relative}
+    .result-card{padding:16px;border-radius:12px;background:linear-gradient(180deg, rgba(255,255,255,0.02), rgba(255,255,255,0.01));border:1px solid rgba(255,255,255,0.03)}
+    .result-title{font-size:13px;color:var(--muted);margin-bottom:8px}
+
+    .meter{height:12px;background:var(--glass);border-radius:999px;overflow:hidden}
+    .meter > i{display:block;height:100%;width:0%;background:linear-gradient(90deg,var(--accent-2),var(--accent));transition:width .6s ease}
+    .severity{margin-top:10px;font-weight:700;font-size:18px}
+    .score{font-size:26px;font-weight:800}
+
+    .examples{margin-top:14px;display:flex;flex-direction:column;gap:8px}
+    .chip{background:rgba(255,255,255,0.02);padding:8px 10px;border-radius:999px;border:1px solid rgba(255,255,255,0.03);cursor:pointer;font-size:13px}
+
+    footer{margin-top:14px;color:var(--muted);font-size:13px}
+
+    /* mood upload styles (integrated into main card) */
+    .mood-section{margin-top:18px}
+    .mood-title{display:flex;align-items:center;gap:8px;justify-content:space-between}
+    .mood-grid{display:grid;grid-template-columns:repeat(5,1fr);gap:12px;margin-top:12px}
+    .mood-card{
+      background:transparent;border:1px solid rgba(255,255,255,0.03);padding:10px;border-radius:10px;text-align:center;
+      display:flex;flex-direction:column;gap:8px;align-items:center;justify-content:flex-start;
+      min-height:240px;
+    }
+    .mood-card img{width:100%;height:120px;object-fit:cover;border-radius:8px;border:1px solid rgba(255,255,255,0.04)}
+    .mood-label{font-weight:700;margin-top:4px}
+    .mood-filename{font-size:12px;color:var(--muted);min-height:18px}
+    .mood-input{width:100%}
+    .note{
+      width:100%;padding:8px;border-radius:8px;margin-top:6px;font-size:13px;display:none;
+    }
+    .note.success{background:var(--note-success);border:1px solid var(--note-success-border);color:var(--accent-2);display:block}
+    .note.error{background:var(--note-error);border:1px solid var(--note-error-border);color:#ffb3b3;display:block}
+
+    /* helper layout */
+    .meta{display:flex;gap:8px;align-items:center;color:var(--muted);font-size:13px}
+
+    /* responsive */
+    @media (max-width:980px){
+      .grid{grid-template-columns:1fr;}
+      .sidebar{order:2}
+      .mood-grid{grid-template-columns:repeat(2,1fr);}
+    }
+    @media (max-width:560px){
+      .mood-grid{grid-template-columns:1fr;}
+    }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <header>
+      <div class="logo"><span>SPPU</span></div>
+      <div>
+        <h1>Depression Intensity Estimator</h1>
+        <p>Prototype UI — paste a social post and get an intensity estimate (demo)</p>
+      </div>
+    </header>
+
+    <div class="grid">
+      <main class="card">
+        <section class="hero">
+          <h2>Enter text from social media</h2>
+          <p class="small">This front-end is a demo. Replace the `/api/predict` endpoint in the script with your model inference API.</p>
+        </section>
+
+        <form id="predict-form" onsubmit="return false;" style="margin-top:12px">
+          <textarea id="txt" placeholder="Type or paste a tweet / post here... (max 1000 chars)"></textarea>
+
+          <div class="controls">
+            <button id="predict-btn" class="btn">Estimate Intensity</button>
+            <button id="clear-btn" class="btn secondary" type="button">Clear</button>
+            <div style="margin-left:auto" class="meta">Model: <strong style="margin-left:6px">BERT (demo)</strong></div>
+          </div>
+        </form>
+
+        <section style="margin-top:16px">
+          <h3 style="margin:0;font-size:16px">Quick examples</h3>
+          <p class="small" style="margin:6px 0 12px 0;color:var(--muted)">Click a sample to load it into the text box.</p>
+          <div class="examples">
+            <div class="chip" data-text="I feel hopeless and tired all the time. Everything feels pointless.">I feel hopeless and tired all the time...</div>
+            <div class="chip" data-text="I had a nice day with friends, feeling grateful and okay.">I had a nice day with friends...</div>
+            <div class="chip" data-text="Sometimes I get very low; but I try to distract myself and manage.">Sometimes I get very low...</div>
+            <div class="chip" data-text="I keep thinking about ending my life and I can't stop.">I keep thinking about ending my life...</div>
+          </div>
+        </section>
+
+        <!-- NEW: Mood Image Upload Section -->
+        <section class="mood-section">
+          <div class="mood-title">
+            <div>
+              <h3 style="margin:0;font-size:16px">Upload 5 Mood Images (fixed)</h3>
+              <p class="small" style="margin:6px 0 0 0;color:var(--muted)">Each mood requires a specific filename (e.g. <code>Happy.jpg</code>) — upload to validate.</p>
+            </div>
+            <div class="small" style="color:var(--muted)">Accepted: .jpg, .jpeg, .png</div>
+          </div>
+
+          <div class="mood-grid" id="mood-grid">
+            <!-- 1: Happy -->
+            <div class="mood-card">
+              <img id="img1" src="" alt="Happy preview">
+              <div class="mood-label">😊 Happy</div>
+              <div id="name1" class="mood-filename">No file selected</div>
+              <input class="mood-input" type="file" accept="image/*" onchange="validateMood(event,'img1','Happy','name1','note1')">
+              <div id="note1" class="note"></div>
+            </div>
+
+            <!-- 2: Sad -->
+            <div class="mood-card">
+              <img id="img2" src="" alt="Sad preview">
+              <div class="mood-label">😢 Sad</div>
+              <div id="name2" class="mood-filename">No file selected</div>
+              <input class="mood-input" type="file" accept="image/*" onchange="validateMood(event,'img2','Sad','name2','note2')">
+              <div id="note2" class="note"></div>
+            </div>
+
+            <!-- 3: Angry -->
+            <div class="mood-card">
+              <img id="img3" src="" alt="Angry preview">
+              <div class="mood-label">😡 Angry</div>
+              <div id="name3" class="mood-filename">No file selected</div>
+              <input class="mood-input" type="file" accept="image/*" onchange="validateMood(event,'img3','Angry','name3','note3')">
+              <div id="note3" class="note"></div>
+            </div>
+
+            <!-- 4: Neutral -->
+            <div class="mood-card">
+              <img id="img4" src="" alt="Neutral preview">
+              <div class="mood-label">😐 Neutral</div>
+              <div id="name4" class="mood-filename">No file selected</div>
+              <input class="mood-input" type="file" accept="image/*" onchange="validateMood(event,'img4','Neutral','name4','note4')">
+              <div id="note4" class="note"></div>
+            </div>
+
+            <!-- 5: Excited -->
+            <div class="mood-card">
+              <img id="img5" src="" alt="Excited preview">
+              <div class="mood-label">🤩 Excited</div>
+              <div id="name5" class="mood-filename">No file selected</div>
+              <input class="mood-input" type="file" accept="image/*" onchange="validateMood(event,'img5','Excited','name5','note5')">
+              <div id="note5" class="note"></div>
+            </div>
+          </div>
+        </section>
+
+        <footer>
+          <p style="margin:0">Ethics: This app is for demonstration. Not a medical tool. Do not use for diagnosis.</p>
+        </footer>
+      </main>
+
+      <aside class="sidebar">
+        <div class="result-card card">
+          <div class="result-title">Estimated intensity</div>
+
+          <div style="display:flex;align-items:center;gap:14px">
+            <div style="flex:1">
+              <div class="meter" aria-hidden><i id="meter-fill"></i></div>
+              <div class="severity" id="severity">—</div>
+            </div>
+            <div style="width:92px;text-align:right">
+              <div class="score" id="score">—</div>
+              <div class="small" style="color:var(--muted)">0.00 — 1.00</div>
+            </div>
+          </div>
+
+          <div style="margin-top:14px">
+            <div class="result-title">Explanation (highlights)</div>
+            <div id="explain" class="small" style="margin-top:8px;color:var(--muted);min-height:46px">Model highlights will show here (demo).</div>
+          </div>
+
+          <div style="margin-top:12px;display:flex;gap:8px;align-items:center">
+            <button id="save-sample" class="btn secondary">Save sample</button>
+            <div style="margin-left:auto" class="small" id="status">Idle</div>
+          </div>
+        </div>
+      </aside>
+    </div>
+
+  </div>
+
+  <script>
+    // Small client-side demo logic. Replace URL with your backend inference endpoint.
+    const predictBtn = document.getElementById('predict-btn');
+    const clearBtn = document.getElementById('clear-btn');
+    const txt = document.getElementById('txt');
+    const meter = document.getElementById('meter-fill');
+    const severity = document.getElementById('severity');
+    const scoreEl = document.getElementById('score');
+    const explain = document.getElementById('explain');
+    const status = document.getElementById('status');
+
+    // demo severity mapping
+    function severityLabel(v){
+      if (v >= 0.8) return 'Severe';
+      if (v >= 0.5) return 'Moderate';
+      if (v > 0.1) return 'Mild';
+      return 'None';
+    }
+
+    // simulate API call (demo) — replace with real backend
+    async function callApiDemo(text){
+      await new Promise(r => setTimeout(r, 700));
+      const low = ['nice','grateful','happy','ok','fine','good','great'];
+      const high = ['end my life','suicide','kill myself','hopeless','cant go on','worthless','want to die','no reason'];
+      const t = text.toLowerCase();
+      let score = 0.02;
+      for (const h of high){ if (t.includes(h)) score = Math.max(score, 0.9); }
+      for (const l of low){ if (t.includes(l)) score = Math.max(score, 0.05); }
+      const sadness = (t.match(/sad/g)||[]).length;
+      const tired = (t.match(/tired|exhausted/g)||[]).length;
+      score = Math.min(0.98, Math.max(score, 0.02 + 0.25*sadness + 0.22*tired));
+      score = Math.round((score + (Math.random()-0.5)*0.06) * 100) / 100;
+      return {score, highlights: ['(demo) keyword-based highlights — replace with model explainability output']};
+    }
+
+    async function predict(){
+      const text = txt.value.trim();
+      if (!text){ alert('Please paste or type some text from social media.'); return; }
+      status.textContent = 'Predicting...';
+      predictBtn.disabled = true;
+      clearBtn.disabled = true;
+
+      try{
+        const json = await callApiDemo(text);
+        const s = Number(json.score || 0).toFixed(2);
+        const sfloat = parseFloat(s);
+        meter.style.width = Math.min(100, Math.max(0, sfloat*100)) + '%';
+        scoreEl.textContent = s;
+        severity.textContent = severityLabel(sfloat);
+        explain.textContent = (json.highlights || []).join('\n') || '—';
+        status.textContent = 'Done';
+      }catch(err){
+        console.error(err);
+        status.textContent = 'Error';
+        alert('Prediction failed — see console.');
+      }finally{
+        predictBtn.disabled = false;
+        clearBtn.disabled = false;
+      }
+    }
+
+    predictBtn.addEventListener('click', predict);
+    clearBtn.addEventListener('click', ()=>{ txt.value = ''; meter.style.width = '0%'; scoreEl.textContent = '—'; severity.textContent = '—'; explain.textContent = ''; status.textContent = 'Idle'; });
+
+    // examples click-to-load
+    document.querySelectorAll('.chip').forEach(el=>el.addEventListener('click', ()=>{ txt.value = el.dataset.text; }));
+
+    // save-sample event (client-only demo)
+    document.getElementById('save-sample').addEventListener('click', ()=>{
+      const val = txt.value.trim();
+      if (!val) return alert('No text to save');
+      const saved = JSON.parse(localStorage.getItem('sppu_samples__v1')||'[]');
+      saved.unshift({text:val, ts:new Date().toISOString()});
+      localStorage.setItem('sppu_samples__v1', JSON.stringify(saved.slice(0,100)));
+      alert('Saved locally (demo). Replace with server-side persistence if you want to collect labeled samples.');
+    });
+
+    /* ---------------------------
+       Mood image filename validation
+       - Each mood expects a filename like "Happy.jpg" (case-insensitive)
+       - Accepts .jpg .jpeg .png but checks base name only (Happy, Sad, Angry, Neutral, Excited)
+       - Shows preview, filename and a success/error note
+       ----------------------------*/
+    const allowedExt = ['jpg','jpeg','png'];
+
+    function validateMood(event, imgId, expectedBaseName, nameId, noteId){
+      const file = event.target.files && event.target.files[0];
+      if (!file) return;
+      const img = document.getElementById(imgId);
+      const nameEl = document.getElementById(nameId);
+      const note = document.getElementById(noteId);
+
+      // set preview (object URL)
+      try{
+        img.src = URL.createObjectURL(file);
+      }catch(e){
+        img.src = '';
+      }
+
+      // show filename
+      nameEl.textContent = file.name;
+
+      // parse file name (base + ext)
+      const parts = file.name.split('.');
+      const ext = parts.length > 1 ? parts.pop().toLowerCase() : '';
+      const base = parts.join('.'); // handles names with dots
+
+      // validation rules:
+      // - extension must be allowed (optional; you can remove this check)
+      // - base must match expectedBaseName (case-insensitive)
+      const isExtOk = allowedExt.includes(ext);
+      const isBaseOk = base.trim().toLowerCase() === expectedBaseName.toLowerCase();
+
+      if (!isExtOk){
+        note.className = 'note error';
+        note.textContent = 'Unsupported file type. Please upload JPG or PNG.';
+        return;
+      }
+
+      if (isBaseOk){
+        note.className = 'note success';
+        note.textContent = 'Correct Image — Mood: ' + expectedBaseName;
+      } else {
+        note.className = 'note error';
+        note.textContent = 'Incorrect Image — Please upload file named: ' + expectedBaseName + '.jpg';
+      }
+
+      // revoke objectURL after image load to free memory
+      if (img.src){
+        img.onload = () => {
+          try{ URL.revokeObjectURL(img.src); }catch(e){}
+        };
+      }
+    }
+
+    // Optionally: function to auto-validate all moods from a folder-style drag? (not implemented)
+  </script>
+</body>
+</html>
